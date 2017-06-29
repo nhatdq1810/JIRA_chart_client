@@ -4,7 +4,7 @@ import showdown from 'showdown';
 import Graph from 'react-graph-vis'
 import './App.css';
 
-const issuetype = ['Story', 'Epic', 'Task', 'Bug'];
+const issuetype = ['Story', 'Improvement', 'Bug', 'Task'];
 
 class App extends Component {
   constructor(props) {
@@ -68,20 +68,13 @@ class App extends Component {
             nodes.push({ id: issue.id, label: issue.key, color, shape, font });
 
             issue.fields.issuelinks.forEach((link => {
-              if (link.type.name === 'Related') {
-                if (link.inwardIssue) {
-                  if (!edges.find(edge => edge.from === issue.id && edge.to === link.inwardIssue.id)) {
-                    edges.push({ from: issue.id, to: link.inwardIssue.id, label: 'is related to' });
-                  }
-                  if (!edges.find(edge => edge.from === link.inwardIssue.id && edge.to === issue.id)) {
-                    edges.push({ from: link.inwardIssue.id, to: issue.id });
-                  }
+              if (link.inwardIssue) {
+                if (!edges.find(edge => edge.from === issue.id && edge.to === link.inwardIssue.id)) {
+                  edges.push({ from: issue.id, to: link.inwardIssue.id, label: link.type.inward });
                 }
               } else {
-                if (link.inwardIssue) {
-                  if (!edges.find(edge => edge.from === issue.id && edge.to === link.inwardIssue.id)) {
-                    edges.push({ from: issue.id, to: link.inwardIssue.id, label: 'is blocked by' });
-                  }
+                if (!edges.find(edge => edge.from === issue.id && edge.to === link.outwardIssue.id)) {
+                  edges.push({ from: issue.id, to: link.outwardIssue.id, label: link.type.outward });
                 }
               }
             }))
@@ -113,7 +106,7 @@ class App extends Component {
     } else {
       issuetype.push(selectedType);
     }
-    this.setState({ issuetype });
+    this.setState({ issuetype, graph: null });
   }
 
   render() {
@@ -123,13 +116,13 @@ class App extends Component {
         {
           issuetype.map((type, key) => {
             return (
-              <label key={key}>
-                {type}
+              <label key={key} style={{ marginRight: '20px' }}>
                 <input
                   type="checkbox"
                   value={type}
                   onChange={this.onChange}
                   defaultChecked={this.state.issuetype.includes(type)} />
+                {type}
               </label>
             );
           })
@@ -142,6 +135,10 @@ class App extends Component {
         <div>
           <main style={{ float: 'left', width: '70%', marginRight: '1%' }}>
             {view}
+            {
+              this.state.graph.nodes.length === 0 &&
+              <p>Graph is not available</p>
+            }
             <Graph
               style={{ height: '100vh', width: '100%' }}
               graph={this.state.graph}
@@ -191,7 +188,14 @@ class App extends Component {
     return (
       <div>
         {view}
-        <p> Loading......</p>
+        {
+          this.state.issuetype.length > 0 &&
+          <p>Loading...</p>
+        }
+        {
+          this.state.issuetype.length === 0 &&
+          <p>Graph is not available</p>
+        }
       </div>
     );
   }
